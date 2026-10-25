@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园统筹 Agent · 通知查询中心</title>
+<style>
+  :root{
+    --indigo:#4f46e5; --violet:#7c3aed; --teal:#0d9488;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0;
+    --bg:#f1f5f9; --card:#ffffff;
+    --hi:#ef4444; --mid:#f59e0b; --lo:#10b981;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6}
+  a{color:inherit;text-decoration:none}
+
+  .hero{background:linear-gradient(135deg,var(--indigo),var(--violet) 60%,var(--teal));
+    color:#fff;padding:56px 24px 64px;text-align:center;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;inset:0;background:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,.15),transparent 40%),
+    radial-gradient(circle at 80% 70%,rgba(255,255,255,.12),transparent 35%)}
+  .hero h1{font-size:34px;font-weight:800;letter-spacing:1px;position:relative}
+  .hero p{margin-top:10px;opacity:.92;font-size:15px;position:relative}
+  .hero .badges{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;position:relative}
+  .hero .badges span{background:rgba(255,255,255,.18);padding:5px 14px;border-radius:999px;
+    font-size:13px;backdrop-filter:blur(4px)}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  .toolbar{margin:-34px auto 0;position:relative;display:flex;gap:14px;
+    align-items:center;background:var(--card);padding:14px 18px;border-radius:16px;
+    box-shadow:0 10px 30px rgba(15,23,42,.12);flex-wrap:wrap}
+  .search{flex:1;min-width:220px;display:flex;align-items:center;gap:10px;
+    background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .search:focus-within{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .search input{border:0;outline:0;background:transparent;width:100%;font-size:15px;color:var(--ink)}
+  .search svg{flex:0 0 18px;color:var(--muted)}
+  .stats{display:flex;gap:18px;font-size:13px;color:var(--muted)}
+  .stats b{color:var(--indigo);font-size:18px}
+
+  section{padding:28px 0 60px}
+  .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .head h2{font-size:20px;font-weight:700}
+  .head .hint{font-size:13px;color:var(--muted)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;cursor:pointer;transition:.18s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(15,23,42,.1);border-color:#c7d2fe}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(var(--indigo),var(--violet))}
+  .card .t{font-size:16px;font-weight:700;margin-bottom:6px;padding-left:8px}
+  .card .m{font-size:13px;color:var(--muted);padding-left:8px;margin-bottom:10px}
+  .card .s{font-size:13px;color:#475569;padding-left:8px;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .card .tag{display:inline-block;font-size:11px;background:#eef2ff;color:var(--indigo);
+    padding:2px 8px;border-radius:6px;margin-left:8px}
+
+  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty .ic{font-size:46px;margin-bottom:12px}
+  .empty a{color:var(--indigo);font-weight:600}
+
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .mask.show{display:flex}
+  .modal{background:#fff;border-radius:18px;width:min(820px,96vw);max-height:88vh;
+    overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);
+    animation:pop .2s ease}
+  @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal .mh{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;justify-content:space-between}
+  .modal .mh h3{font-size:18px;font-weight:700}
+  .modal .mh .x{cursor:pointer;font-size:22px;color:var(--muted);line-height:1;
+    width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .modal .mh .x:hover{background:#f1f5f9}
+  .tabs{display:flex;gap:4px;padding:10px 22px 0;flex-wrap:wrap}
+  .tabs button{border:0;background:#f1f5f9;padding:8px 16px;border-radius:9px 9px 0 0;
+    cursor:pointer;font-size:14px;color:var(--muted);font-weight:600}
+  .tabs button.on{background:#fff;color:var(--indigo);box-shadow:0 -2px 0 var(--indigo) inset}
+  .modal .body{padding:18px 22px 24px;overflow:auto;flex:1}
+  .pane{display:none}.pane.on{display:block}
+  .pane pre{white-space:pre-wrap;word-break:break-word;font-family:inherit;
+    font-size:14px;color:#334155;line-height:1.8}
+  .todo{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .todo:last-child{border:0}
+  .todo .box{width:18px;height:18px;border:2px solid var(--indigo);border-radius:5px;
+    flex:0 0 18px;margin-top:1px}
+  .todo .ct{flex:1}
+  .todo .ct .what{font-size:14px;font-weight:600}
+  .todo .ct .meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .prio{display:inline-block;font-size:11px;padding:1px 7px;border-radius:5px;margin-left:6px}
+  .prio.高{background:#fee2e2;color:var(--hi)}
+  .prio.中{background:#fef3c7;color:var(--mid)}
+  .prio.低{background:#d1fae5;color:var(--lo)}
+  .foot{font-size:12px;color:var(--muted);text-align:center;padding:18px}
+  .loading{text-align:center;padding:40px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>🎓 校园统筹 Agent · 通知查询中心</h1>
+  <p>基于多 Agent 协作生成的会议通知、待办清单、筹备时间线与风险提示，一站式查询浏览</p>
+  <div class="badges">
+    <span>🤖 多 Agent 协作</span><span>📨 正式通知</span><span>✅ 待办清单</span><span>📅 时间线</span><span>⚠️ 风险提示</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="toolbar">
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="text" placeholder="搜索任务标题 / 通知内容 / 摘要…">
+    </label>
+    <div class="stats">
+      <div>共 <b id="cnt">0</b> 条</div>
+      <div>最近更新 <b id="latest">—</b></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="head">
+      <h2>📋 已生成的会议 / 活动任务</h2>
+      <span class="hint">点击卡片查看完整通知与待办详情</span>
+    </div>
+    <div id="list" class="grid"></div>
+  </section>
+</div>
+
+<div class="foot">校园统筹 Agent · 查询门户 · 数据来自本地 data/campus.db</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="mh">
+      <h3 id="mTitle">任务详情</h3>
+      <div class="x" onclick="closeModal()">×</div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let all = [];
+
+async function loadStats(){
+  try{
+    const r = await fetch('/api/stats'); const d = await r.json();
+    $('#cnt').textContent = d.total||0;
+    $('#latest').textContent = d.latest ? d.latest.slice(0,16).replace('T',' ') : '—';
+  }catch(e){}
+}
+
+async function load(q=''){
+  const list = $('#list');
+  list.innerHTML = '<div class="loading">加载中…</div>';
+  try{
+    const r = await fetch('/api/tasks'+(q?('?q='+encodeURIComponent(q)):''));
+    all = await r.json();
+    render(all);
+  }catch(e){
+    list.innerHTML = '<div class="empty"><div class="ic">⚠️</div>查询服务异常，请确认 query_server.py 已启动</div>';
+  }
+  loadStats();
+}
+
+function render(items){
+  const list = $('#list');
+  if(!items.length){
+    list.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="ic">📭</div>'
+      + '暂无可查询的任务。<br>请先在 <a href="http://localhost:8501" target="_blank">校园统筹 Agent 主应用</a> 中创建并保存任务。'
+      + '</div>';
+    return;
+  }
+  list.innerHTML = items.map(t=>`
+    <div class="card" onclick="detail(${t.id})">
+      <div class="t">${esc(t.title)}</div>
+      <div class="m">#${t.id} · ${t.username||'匿名'} · ${fmt(t.created_at)}</div>
+      <div class="s">${esc((t.summary||t.notice||'').slice(0,120))}</div>
+      <span class="tag">${t.notice?'有通知':'—'}</span>
+    </div>`).join('');
+}
+
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(s){return s? s.slice(0,16).replace('T',' '):'—';}
+
+const TABS = [['notice','📨 会议通知'],['todos','✅ 待办事项'],['timeline','📅 时间线'],['risks','⚠️ 风险提示'],['summary','📋 统筹摘要'],['raw_input','原始输入']];
+
+async function detail(id){
+  const r = await fetch('/api/task/'+id); const t = await r.json();
+  if(t.error){alert(t.error);return;}
+  $('#mTitle').textContent = `#${t.id} · ${t.title}`;
+  $('#tabs').innerHTML = TABS.map((b,i)=>`<button class="${i===0?'on':''}" onclick="switchTab(${i})">${b[1]}</button>`).join('');
+  $('#mBody').innerHTML = TABS.map((b,i)=>`<div class="pane ${i===0?'on':''}" data-i="${i}">${renderPane(b[0],t[b[0]])}</div>`).join('');
+  $('#mask').classList.add('show');
+}
+
+function renderPane(key, val){
+  if(key==='todos') return renderTodos(val);
+  return `<pre>${esc(val||'—')}</pre>`;
+}
+
+function renderTodos(val){
+  if(!val) return '<pre>—</pre>';
+  const lines = val.split('\n').filter(l=>l.trim());
+  let html='';
+  for(const l of lines){
+    const m = l.match(/^\s*-\s*\[[\sx]\]\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*$/);
+    if(m){
+      const [_,what,who,when,prio]=m;
+      html += `<div class="todo"><div class="box"></div><div class="ct">
+        <div class="what">${esc(what)}<span class="prio ${esc(prio)}">${esc(prio)}</span></div>
+        <div class="meta">负责人：${esc(who)} · 截止：${esc(when)}</div></div></div>`;
+    }else{
+      html += `<div class="todo"><div class="box"></div><div class="ct"><div class="what">${esc(l.replace(/^\s*-\s*\[[\sx]\]\s*/,''))}</div></div></div>`;
+    }
+  }
+  return html || '<pre>'+esc(val)+'</pre>';
+}
+
+function switchTab(i){
+  document.querySelectorAll('#tabs button').forEach((b,j)=>b.classList.toggle('on',i===j));
+  document.querySelectorAll('#mBody .pane').forEach((p,j)=>p.classList.toggle('on',i===j));
+}
+function closeModal(){$('#mask').classList.remove('show');}
+$('#mask').addEventListener('click',e=>{if(e.target.id==='mask')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+let timer;
+$('#q').addEventListener('input',e=>{
+  clearTimeout(timer);
+  timer = setTimeout(()=>load(e.target.value.trim()),300);
+});
+
+load();
+</script>
+</body>
+</html>
