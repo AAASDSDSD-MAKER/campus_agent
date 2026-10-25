@@ -27,6 +27,10 @@
   .hero .badges span{background:rgba(255,255,255,.18);padding:5px 14px;border-radius:999px;
     font-size:13px;backdrop-filter:blur(4px)}
 
+  #fileBanner{display:none;background:#fef3c7;color:#92400e;padding:10px 20px;
+    text-align:center;font-size:13px;border-bottom:1px solid #fde68a}
+  #fileBanner a{color:#92400e;font-weight:700;text-decoration:underline}
+
   .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
   .toolbar{margin:-34px auto 0;position:relative;display:flex;gap:14px;
     align-items:center;background:var(--card);padding:14px 18px;border-radius:16px;
@@ -107,6 +111,10 @@
   </div>
 </div>
 
+<div id="fileBanner">
+  ⚠️ 你正在以本地文件方式打开此页面，已自动连接查询服务 <b>http://localhost:8010</b>。若无法加载数据，请先启动 <b>run_query.bat</b>，或直接访问 <a href="http://localhost:8010">http://localhost:8010</a>。
+</div>
+
 <div class="wrap">
   <div class="toolbar">
     <label class="search">
@@ -143,11 +151,16 @@
 
 <script>
 const $ = s => document.querySelector(s);
+// API 基址自适应：通过 http(s):// 访问时同源用相对路径；直接打开文件(file://)时用绝对地址
+const API_BASE = location.protocol.startsWith('http') ? '' : 'http://localhost:8010';
+if (location.protocol === 'file:') {
+  document.getElementById('fileBanner').style.display = 'block';
+}
 let all = [];
 
 async function loadStats(){
   try{
-    const r = await fetch('/api/stats'); const d = await r.json();
+    const r = await fetch(API_BASE+'/api/stats'); const d = await r.json();
     $('#cnt').textContent = d.total||0;
     $('#latest').textContent = d.latest ? d.latest.slice(0,16).replace('T',' ') : '—';
   }catch(e){}
@@ -157,11 +170,14 @@ async function load(q=''){
   const list = $('#list');
   list.innerHTML = '<div class="loading">加载中…</div>';
   try{
-    const r = await fetch('/api/tasks'+(q?('?q='+encodeURIComponent(q)):''));
+    const r = await fetch(API_BASE+'/api/tasks'+(q?('?q='+encodeURIComponent(q)):''));
+    if(!r.ok) throw new Error('HTTP '+r.status);
     all = await r.json();
     render(all);
   }catch(e){
-    list.innerHTML = '<div class="empty"><div class="ic">⚠️</div>查询服务异常，请确认 query_server.py 已启动</div>';
+    list.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="ic">⚠️</div>'
+      + '无法连接查询服务。<br>请确认已启动 <b>run_query.bat</b>，<br>'
+      + '或直接访问 <a href="http://localhost:8010">http://localhost:8010</a></div>';
   }
   loadStats();
 }
@@ -189,12 +205,16 @@ function fmt(s){return s? s.slice(0,16).replace('T',' '):'—';}
 const TABS = [['notice','📨 会议通知'],['todos','✅ 待办事项'],['timeline','📅 时间线'],['risks','⚠️ 风险提示'],['summary','📋 统筹摘要'],['raw_input','原始输入']];
 
 async function detail(id){
-  const r = await fetch('/api/task/'+id); const t = await r.json();
-  if(t.error){alert(t.error);return;}
-  $('#mTitle').textContent = `#${t.id} · ${t.title}`;
-  $('#tabs').innerHTML = TABS.map((b,i)=>`<button class="${i===0?'on':''}" onclick="switchTab(${i})">${b[1]}</button>`).join('');
-  $('#mBody').innerHTML = TABS.map((b,i)=>`<div class="pane ${i===0?'on':''}" data-i="${i}">${renderPane(b[0],t[b[0]])}</div>`).join('');
-  $('#mask').classList.add('show');
+  try{
+    const r = await fetch(API_BASE+'/api/task/'+id); const t = await r.json();
+    if(t.error){alert(t.error);return;}
+    $('#mTitle').textContent = `#${t.id} · ${t.title}`;
+    $('#tabs').innerHTML = TABS.map((b,i)=>`<button class="${i===0?'on':''}" onclick="switchTab(${i})">${b[1]}</button>`).join('');
+    $('#mBody').innerHTML = TABS.map((b,i)=>`<div class="pane ${i===0?'on':''}" data-i="${i}">${renderPane(b[0],t[b[0]])}</div>`).join('');
+    $('#mask').classList.add('show');
+  }catch(e){
+    alert('加载详情失败：'+e.message);
+  }
 }
 
 function renderPane(key, val){
